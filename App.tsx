@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Product } from './data/products';
 import { CartProvider } from './context/CartContext';
@@ -17,10 +17,11 @@ import AdminDashboard from './components/AdminDashboard';
 import Checkout from './components/Checkout';
 import CustomerSupport from './components/CustomerSupport';
 import WhatsAppButton from './components/WhatsAppButton';
+import AskQuestionChat from './components/AskQuestionChat';
 import Footer from './components/Footer';
 
 const AppContent: React.FC = () => {
-  const { products, reviews, loading, storeError, addReview, removeReview } = useStore();
+  const { products, reviews, loading, storeError, websiteSettings, addReview, removeReview } = useStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -35,6 +36,22 @@ const AppContent: React.FC = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [showDiscountOnly, setShowDiscountOnly] = useState(false);
   const [showNewOnly, setShowNewOnly] = useState(false);
+
+  const logoColors = useMemo(() => {
+    const selected = websiteSettings.logoColors.length > 0 ? websiteSettings.logoColors : ['#ef4444'];
+    return Array.from({ length: 6 }, (_, i) => selected[i % selected.length]);
+  }, [websiteSettings.logoColors]);
+
+  useEffect(() => {
+    document.title = websiteSettings.websiteTitle || websiteSettings.websiteName || 'EMOREV';
+    let descriptionTag = document.querySelector('meta[name="description"]');
+    if (!descriptionTag) {
+      descriptionTag = document.createElement('meta');
+      descriptionTag.setAttribute('name', 'description');
+      document.head.appendChild(descriptionTag);
+    }
+    descriptionTag.setAttribute('content', websiteSettings.websiteDescription || 'EMOREV premium fashion store');
+  }, [websiteSettings.websiteTitle, websiteSettings.websiteName, websiteSettings.websiteDescription]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -62,7 +79,42 @@ const AppContent: React.FC = () => {
   }, [removeReview]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div
+      className="min-h-screen text-white"
+      style={{
+        backgroundColor: websiteSettings.backgroundColor || '#000000',
+        backgroundImage: websiteSettings.backgroundImage ? `url(${websiteSettings.backgroundImage})` : undefined,
+        backgroundAttachment: websiteSettings.backgroundImage ? 'fixed' : undefined,
+        backgroundSize: websiteSettings.backgroundImage ? 'cover' : undefined,
+        backgroundPosition: websiteSettings.backgroundImage ? 'center' : undefined,
+        ['--emorev-color-1' as string]: logoColors[0],
+        ['--emorev-color-2' as string]: logoColors[1],
+        ['--emorev-color-3' as string]: logoColors[2],
+        ['--emorev-color-4' as string]: logoColors[3],
+        ['--emorev-color-5' as string]: logoColors[4],
+        ['--emorev-color-6' as string]: logoColors[5],
+      }}
+    >
+      <style>{`
+        @keyframes emorevGlobalColorCycle {
+          0%, 15% { background-image: linear-gradient(90deg, var(--emorev-color-1), var(--emorev-color-2)); }
+          16.66%, 31% { background-image: linear-gradient(90deg, var(--emorev-color-2), var(--emorev-color-3)); }
+          33.33%, 48% { background-image: linear-gradient(90deg, var(--emorev-color-3), var(--emorev-color-4)); }
+          50%, 65% { background-image: linear-gradient(90deg, var(--emorev-color-4), var(--emorev-color-5)); }
+          66.66%, 81% { background-image: linear-gradient(90deg, var(--emorev-color-5), var(--emorev-color-6)); }
+          83.33%, 100% { background-image: linear-gradient(90deg, var(--emorev-color-6), var(--emorev-color-1)); }
+        }
+        .emorev-dynamic-logo,
+        .emorev-cycle {
+          animation: emorevGlobalColorCycle 60s ease-in-out infinite;
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          transition: filter 800ms ease, text-shadow 800ms ease;
+          filter: drop-shadow(0 0 16px color-mix(in srgb, var(--emorev-color-1), transparent 45%));
+        }
+      `}</style>
       <Navbar
         onCartClick={() => setCartOpen(true)}
         onSearchClick={() => setSearchOpen(!searchOpen)}
@@ -275,6 +327,7 @@ const AppContent: React.FC = () => {
       <AdminDashboard open={adminOpen} onClose={() => setAdminOpen(false)} />
       <Checkout open={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
       <CustomerSupport open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <AskQuestionChat />
       <WhatsAppButton />
     </div>
   );
